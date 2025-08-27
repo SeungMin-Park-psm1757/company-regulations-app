@@ -3,169 +3,192 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>회사 규정 조회 시스템</title>
+    <title>군인복무기본법 조회 시스템</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- 로딩 스피너 -->
-    <div id="loading-spinner" class="hidden">
-        <div class="spinner"></div>
-        <p>로딩 중...</p>
-    </div>
-
     <!-- 로그인 화면 -->
-    <div id="login-screen" class="login-container">
-        <div class="login-card">
-            <div class="login-header">
-                <h1>🏢 회사 규정 조회 시스템</h1>
-                <p>안전한 규정 조회를 위해 로그인해주세요</p>
+    <div id="loginScreen" class="screen">
+        <div class="login-container">
+            <div class="law-logo">
+                <h1>⚖️ 군인복무기본법</h1>
+                <p class="law-subtitle">군인의 지위 및 복무에 관한 기본법</p>
             </div>
-            <form id="login-form" class="login-form">
-                <div class="form-group">
-                    <label for="username" class="form-label">사용자 ID</label>
-                    <input type="text" id="username" class="form-control" placeholder="사용자 ID를 입력하세요" required>
+            <div class="card login-card">
+                <div class="card__body">
+                    <h2 class="login-title">로그인</h2>
+                    <form id="loginForm" class="login-form">
+                        <div class="form-group">
+                            <label class="form-label" for="username">아이디</label>
+                            <input type="text" id="username" class="form-control" placeholder="아이디를 입력하세요" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="password">비밀번호</label>
+                            <input type="password" id="password" class="form-control" placeholder="비밀번호를 입력하세요" required>
+                        </div>
+                        <div id="loginError" class="error-message hidden"></div>
+                        <button type="submit" class="btn btn--primary btn--full-width">로그인</button>
+                    </form>
                 </div>
-                <div class="form-group">
-                    <label for="password" class="form-label">비밀번호</label>
-                    <input type="password" id="password" class="form-control" placeholder="비밀번호를 입력하세요" required>
-                </div>
-                <button type="submit" class="btn btn--primary btn--full-width">로그인</button>
-                <div id="login-error" class="error-message hidden"></div>
-            </form>
+            </div>
         </div>
     </div>
 
-    <!-- 메인 애플리케이션 -->
-    <div id="main-app" class="main-app hidden">
-        <!-- 헤더 -->
-        <header class="app-header">
-            <div class="header-content">
-                <h1 class="app-title">📋 규정 조회</h1>
-                <div class="header-actions">
-                    <button id="search-btn" class="btn btn--secondary btn--sm">🔍 검색</button>
-                    <button id="theme-toggle" class="btn btn--secondary btn--sm">🌙</button>
-                    <button id="logout-btn" class="btn btn--outline btn--sm">로그아웃</button>
+    <!-- 메인 화면 -->
+    <div id="mainScreen" class="screen hidden">
+        <!-- 상단 네비게이션 -->
+        <header class="header">
+            <div class="container">
+                <div class="header__content">
+                    <h1 class="header__title">⚖️ 군인복무기본법</h1>
+                    <div class="header__actions">
+                        <button id="searchBtn" class="btn btn--secondary btn--sm">🔍</button>
+                        <button id="themeToggle" class="btn btn--secondary btn--sm">🌙</button>
+                        <button id="downloadBtn" class="btn btn--secondary btn--sm">💾</button>
+                        <button id="profileBtn" class="btn btn--secondary btn--sm">👤</button>
+                    </div>
                 </div>
-            </div>
-            <div class="user-info">
-                <span id="user-name"></span> | <span id="user-department"></span>
             </div>
         </header>
 
-        <!-- 네비게이션 -->
-        <nav class="app-nav">
-            <button id="nav-home" class="nav-btn active">🏠 홈</button>
-            <button id="nav-bookmarks" class="nav-btn">⭐ 북마크</button>
-            <button id="nav-history" class="nav-btn">📖 히스토리</button>
-        </nav>
-
-        <!-- 검색 모달 -->
-        <div id="search-modal" class="modal hidden">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>규정 검색</h3>
-                    <button id="close-search" class="close-btn">✕</button>
-                </div>
-                <div class="modal-body">
-                    <div class="search-box">
-                        <input type="text" id="search-input" class="form-control" placeholder="검색어를 입력하세요...">
-                        <button id="search-execute" class="btn btn--primary">검색</button>
-                    </div>
-                    <div id="search-results" class="search-results"></div>
+        <!-- 검색 바 -->
+        <div id="searchBar" class="search-bar hidden">
+            <div class="container">
+                <div class="search-input-container">
+                    <input type="text" id="searchInput" class="form-control" placeholder="조문 제목이나 내용을 검색하세요...">
+                    <button id="searchClose" class="btn btn--secondary btn--sm">✕</button>
                 </div>
             </div>
         </div>
 
-        <!-- 메인 컨텐츠 -->
-        <main class="app-main">
-            <!-- 홈 화면 -->
-            <div id="home-screen" class="screen active">
-                <div class="welcome-section">
-                    <h2>📚 규정 카테고리</h2>
-                    <p>열람하고 싶은 규정 카테고리를 선택하세요</p>
-                </div>
-                
-                <div id="categories-grid" class="categories-grid">
-                    <!-- 카테고리들이 동적으로 추가됩니다 -->
-                </div>
+        <!-- 메인 콘텐츠 -->
+        <main class="main-content">
+            <div class="container">
+                <!-- 법률 정보 -->
+                <section class="law-info">
+                    <div class="law-info-card">
+                        <h2>군인의 지위 및 복무에 관한 기본법</h2>
+                        <p class="law-status">[시행 2025. 6. 4.] [법률 제20539호]</p>
+                        <p class="law-description">국가방위와 국민의 보호를 사명으로 하는 군인의 기본권을 보장하고, 군인의 의무 및 병영생활에 대한 기본사항을 정함으로써 선진 정예 강군 육성에 이바지하는 것을 목적으로 합니다.</p>
+                    </div>
+                </section>
 
-                <div class="quick-access">
+                <!-- 빠른 접근 -->
+                <section class="quick-access">
                     <h3>빠른 접근</h3>
-                    <div class="quick-access-grid">
-                        <div class="quick-access-card" id="recent-bookmarks">
-                            <div class="card-icon">⭐</div>
-                            <div class="card-content">
-                                <h4>최근 북마크</h4>
-                                <div id="recent-bookmarks-list" class="quick-list"></div>
-                            </div>
-                        </div>
-                        <div class="quick-access-card" id="recent-history">
-                            <div class="card-icon">📖</div>
-                            <div class="card-content">
-                                <h4>최근 조회</h4>
-                                <div id="recent-history-list" class="quick-list"></div>
-                            </div>
-                        </div>
+                    <div class="quick-grid">
+                        <button class="quick-item" onclick="showMyPage('bookmarks')">
+                            <span class="quick-icon">⭐</span>
+                            <span class="quick-text">북마크</span>
+                        </button>
+                        <button class="quick-item" onclick="showMyPage('history')">
+                            <span class="quick-icon">🕒</span>
+                            <span class="quick-text">최근 열람</span>
+                        </button>
+                        <button class="quick-item" onclick="showAllArticles()">
+                            <span class="quick-icon">📑</span>
+                            <span class="quick-text">전체 조문</span>
+                        </button>
+                        <button class="quick-item" onclick="downloadCode()">
+                            <span class="quick-icon">💾</span>
+                            <span class="quick-text">코드 다운로드</span>
+                        </button>
                     </div>
-                </div>
-            </div>
+                </section>
 
-            <!-- 카테고리 상세 화면 -->
-            <div id="category-screen" class="screen">
-                <div class="screen-header">
-                    <button id="back-to-home" class="btn btn--outline btn--sm">← 홈으로</button>
-                    <h2 id="category-title"></h2>
-                </div>
-                <div id="sections-list" class="sections-list">
-                    <!-- 섹션들이 동적으로 추가됩니다 -->
-                </div>
-            </div>
+                <!-- 장별 구성 -->
+                <section class="chapters">
+                    <h3>장별 구성</h3>
+                    <div id="chaptersList" class="chapters-list"></div>
+                </section>
 
-            <!-- 규정 상세 화면 -->
-            <div id="regulation-screen" class="screen">
-                <div class="screen-header">
-                    <button id="back-to-category" class="btn btn--outline btn--sm">← 뒤로</button>
-                    <div class="regulation-actions">
-                        <button id="bookmark-toggle" class="btn btn--secondary btn--sm">⭐ 북마크</button>
+                <!-- 조문 목록 -->
+                <section id="articlesSection" class="articles hidden">
+                    <div class="articles-header">
+                        <button id="articlesBackBtn" class="btn btn--secondary btn--sm">← 뒤로</button>
+                        <h3 id="chapterTitle">조문 목록</h3>
                     </div>
-                </div>
-                <div class="regulation-content">
-                    <h2 id="regulation-title"></h2>
-                    <div id="regulation-text" class="regulation-text no-select"></div>
-                </div>
-            </div>
+                    <div id="articlesList" class="articles-list"></div>
+                </section>
 
-            <!-- 북마크 화면 -->
-            <div id="bookmarks-screen" class="screen">
-                <div class="screen-header">
-                    <h2>⭐ 북마크</h2>
-                </div>
-                <div id="bookmarks-list" class="bookmarks-list">
-                    <!-- 북마크들이 동적으로 추가됩니다 -->
-                </div>
-            </div>
-
-            <!-- 히스토리 화면 -->
-            <div id="history-screen" class="screen">
-                <div class="screen-header">
-                    <h2>📖 조회 히스토리</h2>
-                    <button id="clear-history" class="btn btn--outline btn--sm">기록 삭제</button>
-                </div>
-                <div id="history-list" class="history-list">
-                    <!-- 히스토리들이 동적으로 추가됩니다 -->
-                </div>
+                <!-- 검색 결과 -->
+                <section id="searchResults" class="search-results hidden">
+                    <h3>검색 결과</h3>
+                    <div id="searchResultsList" class="articles-list"></div>
+                </section>
             </div>
         </main>
+    </div>
 
-        <!-- 자동 로그아웃 경고 -->
-        <div id="timeout-warning" class="modal hidden">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>⚠️ 자동 로그아웃 경고</h3>
+    <!-- 조문 상세 화면 -->
+    <div id="detailScreen" class="screen hidden">
+        <header class="detail-header">
+            <div class="container">
+                <div class="detail-header__content">
+                    <button id="backBtn" class="btn btn--secondary btn--sm">← 뒤로</button>
+                    <h2 id="detailTitle" class="detail-title"></h2>
+                    <button id="bookmarkBtn" class="btn btn--secondary btn--sm">⭐</button>
                 </div>
-                <div class="modal-body">
-                    <p>비활성화로 인해 <span id="countdown">60</span>초 후 자동으로 로그아웃됩니다.</p>
-                    <button id="extend-session" class="btn btn--primary btn--full-width">세션 연장</button>
+            </div>
+        </header>
+        <div class="detail-content">
+            <div class="container">
+                <div id="articleViewer" class="article-viewer">
+                    <div class="article-content">
+                        <h3 id="articleTitle" class="article-title"></h3>
+                        <div id="articleContent" class="article-text"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 마이페이지 화면 -->
+    <div id="myPageScreen" class="screen hidden">
+        <header class="detail-header">
+            <div class="container">
+                <div class="detail-header__content">
+                    <button id="myPageBackBtn" class="btn btn--secondary btn--sm">← 뒤로</button>
+                    <h2 id="myPageTitle">마이페이지</h2>
+                    <button id="logoutBtn" class="btn btn--secondary btn--sm">로그아웃</button>
+                </div>
+            </div>
+        </header>
+        <div class="detail-content">
+            <div class="container">
+                <!-- 탭 메뉴 -->
+                <div class="tab-menu">
+                    <button class="tab-btn active" data-tab="bookmarks">북마크</button>
+                    <button class="tab-btn" data-tab="history">히스토리</button>
+                    <button class="tab-btn" data-tab="settings">설정</button>
+                </div>
+
+                <!-- 북마크 탭 -->
+                <div id="bookmarksTab" class="tab-content active">
+                    <div id="bookmarksList" class="articles-list"></div>
+                </div>
+
+                <!-- 히스토리 탭 -->
+                <div id="historyTab" class="tab-content">
+                    <div id="historyList" class="articles-list"></div>
+                </div>
+
+                <!-- 설정 탭 -->
+                <div id="settingsTab" class="tab-content">
+                    <div class="settings-list">
+                        <div class="setting-item">
+                            <span class="setting-label">다크 모드</span>
+                            <button id="themeToggleSettings" class="btn btn--secondary btn--sm">🌙</button>
+                        </div>
+                        <div class="setting-item">
+                            <span class="setting-label">현재 사용자</span>
+                            <span id="currentUser" class="setting-value"></span>
+                        </div>
+                        <div class="setting-item">
+                            <span class="setting-label">코드 다운로드</span>
+                            <button id="downloadBtnSettings" class="btn btn--secondary btn--sm">💾</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
