@@ -1,5 +1,5 @@
-// 군인복무기본법 웹앱 - JavaScript
-// 보안 암호화 시스템 및 전체 기능 구현
+// 군인복무기본법 웹앱 - JavaScript (v2.0)
+// 즐겨찾기 기능 및 로그인 추적 시스템 포함
 
 class MilitaryLawApp {
     constructor() {
@@ -7,6 +7,8 @@ class MilitaryLawApp {
         this.isDarkMode = localStorage.getItem('darkMode') === 'true';
         this.encryptedData = null;
         this.lawData = null;
+        this.userBookmarks = {};
+        this.accessLogs = [];
         this.init();
     }
 
@@ -22,6 +24,9 @@ class MilitaryLawApp {
 
         // 다크모드 초기화
         this.initializeTheme();
+
+        // 기존 로그 불러오기
+        this.loadAccessLogs();
 
         // 세션 확인
         this.checkSession();
@@ -164,6 +169,200 @@ class MilitaryLawApp {
         }
     }
 
+    // 접근 로그 수집
+    async collectAccessInfo() {
+        try {
+            const accessInfo = {
+                userId: this.currentUser.id,
+                timestamp: new Date().toISOString(),
+                ip: 'Unknown',
+                location: 'Unknown'
+            };
+
+            // IP 주소 및 위치 정보 가져오기
+            try {
+                const response = await fetch('https://ip-api.com/json/', {
+                    method: 'GET',
+                    timeout: 5000
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    accessInfo.ip = data.query || 'Unknown';
+                    accessInfo.location = data.country || 'Unknown';
+                }
+            } catch (error) {
+                // IP 정보를 가져올 수 없는 경우 기본값 유지
+                console.warn('IP 정보 수집 실패:', error);
+            }
+
+            return accessInfo;
+        } catch (error) {
+            console.error('접근 정보 수집 오류:', error);
+            return {
+                userId: this.currentUser?.id || 'Unknown',
+                timestamp: new Date().toISOString(),
+                ip: 'Unknown',
+                location: 'Unknown'
+            };
+        }
+    }
+
+    // 접근 로그 저장
+    async saveAccessLog() {
+        const accessInfo = await this.collectAccessInfo();
+
+        // 기존 로그에 추가
+        this.accessLogs.push(accessInfo);
+
+        // localStorage에 저장 (최대 100개 로그만 유지)
+        if (this.accessLogs.length > 100) {
+            this.accessLogs = this.accessLogs.slice(-100);
+        }
+
+        localStorage.setItem('militaryLawAccessLogs', JSON.stringify(this.accessLogs));
+
+        // 관리자인 경우 로그 다운로드 링크 생성
+        if (this.currentUser?.role === '관리자') {
+            this.generateLogDownload();
+        }
+
+        // 콘솔에 로그 출력 (개발용)
+        console.log('🔒 새로운 접근 기록:', accessInfo);
+    }
+
+    // 접근 로그 불러오기
+    loadAccessLogs() {
+        const saved = localStorage.getItem('militaryLawAccessLogs');
+        if (saved) {
+            try {
+                this.accessLogs = JSON.parse(saved);
+            } catch (error) {
+                console.error('로그 불러오기 실패:', error);
+                this.accessLogs = [];
+            }
+        }
+    }
+
+    // CSV 로그 파일 생성 및 다운로드
+    generateLogDownload() {
+        try {
+            // CSV 헤더
+            const csvHeader = 'UserId,AccessTime,IP,Location\n';
+
+            // CSV 데이터
+            const csvData = this.accessLogs.map(log => 
+                `${log.userId},"${log.timestamp}",${log.ip},${log.location}`
+            ).join('\n');
+
+            const csvContent = csvHeader + csvData;
+
+            // 5초 후에 다운로드 링크 생성
+            setTimeout(() => {
+                this.createDownloadLink(csvContent);
+            }, 5000);
+
+        } catch (error) {
+            console.error('로그 파일 생성 오류:', error);
+        }
+    }
+
+    // 다운로드 링크 생성
+    createDownloadLink(csvContent) {
+        try {
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+
+            link.setAttribute('href', url);
+            link.setAttribute('download', `military_law_access_log_${timestamp}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+
+            // 자동 다운로드는 하지 않고 콘솔에 링크 정보만 출력
+            console.log('📄 접근 로그 파일 준비 완료. 다운로드 링크가 생성되었습니다.');
+            console.log('관리자 권한으로 필요시 다운로드 가능합니다.');
+
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('다운로드 링크 생성 오류:', error);
+        }
+    }
+
+    // 즐겨찾기 관련 기능
+    loadUserBookmarks() {
+        if (!this.currentUser) return;
+
+        const saved = localStorage.getItem(`bookmarks_${this.currentUser.id}`);
+        if (saved) {
+            try {
+                this.userBookmarks = JSON.parse(saved);
+            } catch (error) {
+                console.error('즐겨찾기 불러오기 실패:', error);
+                this.userBookmarks = {};
+            }
+        } else {
+            this.userBookmarks = {};
+        }
+
+        this.updateBookmarkCount();
+    }
+
+    saveUserBookmarks() {
+        if (!this.currentUser) return;
+
+        localStorage.setItem(`bookmarks_${this.currentUser.id}`, JSON.stringify(this.userBookmarks));
+        this.updateBookmarkCount();
+    }
+
+    updateBookmarkCount() {
+        const count = Object.keys(this.userBookmarks).length;
+        const countElement = document.getElementById('bookmarkCount');
+        const countDisplayElement = document.getElementById('bookmarksCountDisplay');
+
+        if (count > 0) {
+            countElement.textContent = count;
+            countElement.classList.remove('hidden');
+            countDisplayElement.textContent = `${count}개 조문`;
+        } else {
+            countElement.classList.add('hidden');
+            countDisplayElement.textContent = '0개 조문';
+        }
+    }
+
+    isBookmarked(chapterKey, articleIndex) {
+        const bookmarkId = `${chapterKey}_${articleIndex}`;
+        return this.userBookmarks.hasOwnProperty(bookmarkId);
+    }
+
+    addBookmark(chapterKey, articleIndex) {
+        const bookmarkId = `${chapterKey}_${articleIndex}`;
+        const chapter = this.lawData.chapters[chapterKey];
+        const article = chapter.articles[articleIndex];
+
+        this.userBookmarks[bookmarkId] = {
+            chapterKey: chapterKey,
+            chapterTitle: chapter.title,
+            articleIndex: articleIndex,
+            articleNumber: article.number,
+            articleTitle: article.title,
+            articleContent: article.content,
+            timestamp: new Date().toISOString()
+        };
+
+        this.saveUserBookmarks();
+        this.showMessage('즐겨찾기에 추가되었습니다.', 'success');
+    }
+
+    removeBookmark(chapterKey, articleIndex) {
+        const bookmarkId = `${chapterKey}_${articleIndex}`;
+        delete this.userBookmarks[bookmarkId];
+        this.saveUserBookmarks();
+        this.showMessage('즐겨찾기에서 제거되었습니다.', 'success');
+    }
+
     // 법령 데이터 로드
     async loadLawData() {
         // 실제 법령 데이터 (군인복무기본법 8개 장 62개 조문)
@@ -291,15 +490,15 @@ class MilitaryLawApp {
             this.handleLogin();
         });
 
-        // 빠른접근 탭들
+        // 빠간접근 탭들 (히스토리 제거됨)
         document.getElementById('searchTab').addEventListener('click', () => this.showNotImplemented('검색'));
-        document.getElementById('bookmarkTab').addEventListener('click', () => this.showNotImplemented('즐겨찾기'));
-        document.getElementById('historyTab').addEventListener('click', () => this.showNotImplemented('히스토리'));
+        document.getElementById('bookmarkTab').addEventListener('click', () => this.showBookmarksView());
         document.getElementById('themeToggle').addEventListener('click', () => this.toggleTheme());
         document.getElementById('logoutBtn').addEventListener('click', () => this.logout());
 
-        // 뒤로가기 버튼
+        // 뒤로가기 버튼들
         document.getElementById('backButton').addEventListener('click', () => this.showChaptersView());
+        document.getElementById('backFromBookmarks').addEventListener('click', () => this.showChaptersView());
     }
 
     // 테마 초기화
@@ -319,6 +518,7 @@ class MilitaryLawApp {
                 const sessionData = JSON.parse(session);
                 if (sessionData.expires > Date.now()) {
                     this.currentUser = sessionData.user;
+                    this.loadUserBookmarks();
                     this.showMainApp();
                     return;
                 }
@@ -357,6 +557,12 @@ class MilitaryLawApp {
         // 로그인 성공
         this.currentUser = user;
 
+        // 접근 로그 저장
+        await this.saveAccessLog();
+
+        // 사용자별 즐겨찾기 로드
+        this.loadUserBookmarks();
+
         // 세션 저장 (1시간 유효)
         const sessionData = {
             user: user,
@@ -370,6 +576,7 @@ class MilitaryLawApp {
     // 로그아웃
     logout() {
         this.currentUser = null;
+        this.userBookmarks = {};
         localStorage.removeItem('militaryLawSession');
         this.showLoginScreen();
     }
@@ -436,10 +643,15 @@ class MilitaryLawApp {
         content.innerHTML = `
             <h2 class="chapter-title">${chapter.title}</h2>
             <div class="articles-list">
-                ${chapter.articles.map(article => `
+                ${chapter.articles.map((article, index) => `
                     <div class="article-item">
                         <div class="article-header">
-                            ${article.number}(${article.title})
+                            <span>${article.number}(${article.title})</span>
+                            <button class="bookmark-btn ${this.isBookmarked(chapterKey, index) ? 'bookmarked' : ''}" 
+                                    onclick="app.toggleBookmark('${chapterKey}', ${index})">
+                                <i class="fas fa-star"></i>
+                                <span>${this.isBookmarked(chapterKey, index) ? '저장됨' : '저장'}</span>
+                            </button>
                         </div>
                         <div class="article-content">
                             ${article.content}
@@ -452,16 +664,101 @@ class MilitaryLawApp {
         this.showArticleView();
     }
 
+    // 즐겨찾기 토글
+    toggleBookmark(chapterKey, articleIndex) {
+        if (this.isBookmarked(chapterKey, articleIndex)) {
+            this.removeBookmark(chapterKey, articleIndex);
+        } else {
+            this.addBookmark(chapterKey, articleIndex);
+        }
+
+        // 버튼 상태 업데이트
+        const buttons = document.querySelectorAll('.bookmark-btn');
+        buttons.forEach((btn, index) => {
+            if (btn.onclick.toString().includes(`'${chapterKey}', ${articleIndex}`)) {
+                if (this.isBookmarked(chapterKey, articleIndex)) {
+                    btn.classList.add('bookmarked');
+                    btn.querySelector('span').textContent = '저장됨';
+                } else {
+                    btn.classList.remove('bookmarked');
+                    btn.querySelector('span').textContent = '저장';
+                }
+            }
+        });
+    }
+
+    // 즐겨찾기 화면 표시
+    showBookmarksView() {
+        const grid = document.getElementById('bookmarksGrid');
+        const bookmarkKeys = Object.keys(this.userBookmarks);
+
+        if (bookmarkKeys.length === 0) {
+            grid.innerHTML = `
+                <div class="empty-bookmarks">
+                    <i class="fas fa-star"></i>
+                    <p>아직 저장된 조문이 없습니다.</p>
+                    <small>각 조문의 "저장" 버튼을 눌러 즐겨찾기에 추가해보세요.</small>
+                </div>
+            `;
+        } else {
+            grid.innerHTML = bookmarkKeys.map(bookmarkId => {
+                const bookmark = this.userBookmarks[bookmarkId];
+                return `
+                    <div class="bookmark-item" onclick="app.goToBookmarkedArticle('${bookmark.chapterKey}', ${bookmark.articleIndex})">
+                        <div class="bookmark-item-header">
+                            <div class="bookmark-article-info">
+                                ${bookmark.articleNumber}(${bookmark.articleTitle})
+                            </div>
+                            <button class="remove-bookmark" onclick="event.stopPropagation(); app.removeBookmarkFromList('${bookmarkId}')">
+                                <i class="fas fa-times"></i> 삭제
+                            </button>
+                        </div>
+                        <div class="bookmark-content">
+                            ${bookmark.articleContent.substring(0, 200)}${bookmark.articleContent.length > 200 ? '...' : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        document.getElementById('chaptersView').classList.add('hidden');
+        document.getElementById('articleView').classList.add('hidden');
+        document.getElementById('bookmarksView').classList.remove('hidden');
+
+        // 즐겨찾기 탭 활성화 표시
+        document.getElementById('bookmarkTab').classList.add('active');
+    }
+
+    // 즐겨찾기에서 조문으로 이동
+    goToBookmarkedArticle(chapterKey, articleIndex) {
+        this.showChapterDetail(chapterKey);
+    }
+
+    // 즐겨찾기 목록에서 제거
+    removeBookmarkFromList(bookmarkId) {
+        delete this.userBookmarks[bookmarkId];
+        this.saveUserBookmarks();
+        this.showBookmarksView(); // 화면 새로고침
+    }
+
     // 장별 목록 화면 표시
     showChaptersView() {
         document.getElementById('chaptersView').classList.remove('hidden');
         document.getElementById('articleView').classList.add('hidden');
+        document.getElementById('bookmarksView').classList.add('hidden');
+
+        // 활성 탭 해제
+        document.getElementById('bookmarkTab').classList.remove('active');
     }
 
     // 조문 상세 화면 표시
     showArticleView() {
         document.getElementById('chaptersView').classList.add('hidden');
         document.getElementById('articleView').classList.remove('hidden');
+        document.getElementById('bookmarksView').classList.add('hidden');
+
+        // 활성 탭 해제
+        document.getElementById('bookmarkTab').classList.remove('active');
     }
 
     // 미구현 기능 알림
@@ -469,7 +766,27 @@ class MilitaryLawApp {
         alert(`${feature} 기능은 향후 업데이트에서 제공될 예정입니다.`);
     }
 
-    // 오류 메시지 표시
+    // 메시지 표시
+    showMessage(message, type = 'error') {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = type === 'success' ? 'success-message' : 'error-message';
+        messageDiv.textContent = message;
+        messageDiv.style.position = 'fixed';
+        messageDiv.style.top = '20px';
+        messageDiv.style.left = '50%';
+        messageDiv.style.transform = 'translateX(-50%)';
+        messageDiv.style.zIndex = '9999';
+        messageDiv.style.borderRadius = '5px';
+        messageDiv.style.padding = '10px 20px';
+
+        document.body.appendChild(messageDiv);
+
+        setTimeout(() => {
+            document.body.removeChild(messageDiv);
+        }, 3000);
+    }
+
+    // 오류 메시지 표시 (기존 함수 유지)
     showError(message, element) {
         element.textContent = message;
         element.classList.remove('hidden');
@@ -480,9 +797,12 @@ class MilitaryLawApp {
     }
 }
 
+// 전역 앱 인스턴스
+let app;
+
 // 앱 초기화
 document.addEventListener('DOMContentLoaded', () => {
-    new MilitaryLawApp();
+    app = new MilitaryLawApp();
 });
 
 // 전역 오류 처리

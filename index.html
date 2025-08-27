@@ -17,6 +17,7 @@
             --secondary-color: #3498db;
             --accent-color: #e74c3c;
             --success-color: #27ae60;
+            --warning-color: #f39c12;
             --text-color: #2c3e50;
             --bg-color: #ecf0f1;
             --card-bg: #ffffff;
@@ -29,6 +30,7 @@
             --secondary-color: #3498db;
             --accent-color: #e74c3c;
             --success-color: #27ae60;
+            --warning-color: #f39c12;
             --text-color: #ecf0f1;
             --bg-color: #2c3e50;
             --card-bg: #34495e;
@@ -106,6 +108,7 @@
             transition: all 0.3s ease;
             min-width: 44px;
             justify-content: center;
+            position: relative;
         }
 
         .quick-tab:hover {
@@ -113,8 +116,29 @@
             transform: translateY(-2px);
         }
 
+        .quick-tab.active {
+            background: var(--warning-color);
+            color: white;
+        }
+
         .quick-tab i {
             font-size: 1rem;
+        }
+
+        .bookmark-count {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--accent-color);
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
         }
 
         @media (max-width: 768px) {
@@ -321,6 +345,7 @@
             border-radius: 8px;
             overflow: hidden;
             border: 1px solid var(--border-color);
+            position: relative;
         }
 
         .article-header {
@@ -329,6 +354,36 @@
             padding: 15px 20px;
             font-weight: 600;
             font-size: 1.1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .bookmark-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .bookmark-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .bookmark-btn.bookmarked {
+            background: var(--warning-color);
+            color: white;
+        }
+
+        .bookmark-btn.bookmarked:hover {
+            background: #e67e22;
         }
 
         .article-content {
@@ -337,9 +392,120 @@
             white-space: pre-line;
         }
 
+        /* 즐겨찾기 화면 */
+        .bookmarks-view {
+            padding: 20px 0;
+        }
+
+        .bookmarks-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .bookmarks-title {
+            color: var(--primary-color);
+            font-size: 1.8rem;
+            margin: 0;
+        }
+
+        .bookmarks-count {
+            background: var(--warning-color);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .bookmarks-grid {
+            display: grid;
+            gap: 15px;
+        }
+
+        .bookmark-item {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .bookmark-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+        }
+
+        .bookmark-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .bookmark-article-info {
+            color: var(--secondary-color);
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .remove-bookmark {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 5px 8px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+
+        .remove-bookmark:hover {
+            background: #c0392b;
+        }
+
+        .bookmark-content {
+            color: var(--text-color);
+            line-height: 1.6;
+            font-size: 0.9rem;
+        }
+
+        .empty-bookmarks {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--border-color);
+        }
+
+        .empty-bookmarks i {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-bookmarks p {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+
+        .empty-bookmarks small {
+            font-size: 0.9rem;
+        }
+
         /* 오류 메시지 */
         .error-message {
             background: var(--accent-color);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        .success-message {
+            background: var(--success-color);
             color: white;
             padding: 10px 15px;
             border-radius: 5px;
@@ -402,10 +568,23 @@
             .article-header {
                 padding: 12px 15px;
                 font-size: 1rem;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .bookmark-btn {
+                align-self: flex-end;
             }
 
             .article-content {
                 padding: 15px;
+            }
+
+            .bookmarks-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
             }
         }
     </style>
@@ -476,10 +655,7 @@
                         <button class="quick-tab" id="bookmarkTab" title="즐겨찾기">
                             <i class="fas fa-star"></i>
                             <span class="tab-text">즐겨찾기</span>
-                        </button>
-                        <button class="quick-tab" id="historyTab" title="히스토리">
-                            <i class="fas fa-history"></i>
-                            <span class="tab-text">히스토리</span>
+                            <span class="bookmark-count hidden" id="bookmarkCount">0</span>
                         </button>
                         <button class="quick-tab" id="themeToggle" title="다크모드">
                             <i class="fas fa-moon"></i>
@@ -511,6 +687,21 @@
                         뒤로가기
                     </button>
                     <div id="articleContent">
+                        <!-- JavaScript로 동적 생성 -->
+                    </div>
+                </div>
+
+                <!-- 즐겨찾기 화면 -->
+                <div id="bookmarksView" class="bookmarks-view hidden">
+                    <button class="back-button" id="backFromBookmarks">
+                        <i class="fas fa-arrow-left"></i>
+                        뒤로가기
+                    </button>
+                    <div class="bookmarks-header">
+                        <h2 class="bookmarks-title">⭐ 즐겨찾기</h2>
+                        <div class="bookmarks-count" id="bookmarksCountDisplay">0개 조문</div>
+                    </div>
+                    <div class="bookmarks-grid" id="bookmarksGrid">
                         <!-- JavaScript로 동적 생성 -->
                     </div>
                 </div>
