@@ -1,0 +1,17 @@
+[
+  {
+    "id": "admin",
+    "password": "admin1",
+    "role": "관리자"
+  },
+  {
+    "id": "10-10165",
+    "password": "1",
+    "role": "사용자"
+  },
+  {
+    "id": "10-10166",
+    "password": "2",
+    "role": "사용자"
+  }
+]

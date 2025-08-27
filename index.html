@@ -3,195 +3,519 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>군인복무기본법 조회 시스템</title>
-    <link rel="stylesheet" href="style.css">
+    <title>군인의 지위 및 복무에 관한 기본법</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --success-color: #27ae60;
+            --text-color: #2c3e50;
+            --bg-color: #ecf0f1;
+            --card-bg: #ffffff;
+            --border-color: #bdc3c7;
+            --shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        [data-theme="dark"] {
+            --primary-color: #34495e;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --success-color: #27ae60;
+            --text-color: #ecf0f1;
+            --bg-color: #2c3e50;
+            --card-bg: #34495e;
+            --border-color: #7f8c8d;
+            --shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            transition: all 0.3s ease;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* 헤더 스타일 */
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 20px 0;
+            box-shadow: var(--shadow);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .logo-section {
+            text-align: center;
+            flex: 1;
+        }
+
+        .logo-section h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .logo-section .subtitle {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .quick-tabs {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .quick-tab {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            min-width: 44px;
+            justify-content: center;
+        }
+
+        .quick-tab:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+
+        .quick-tab i {
+            font-size: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .quick-tab .tab-text {
+                display: none;
+            }
+
+            .logo-section h1 {
+                font-size: 1.4rem;
+            }
+        }
+
+        /* 로그인 화면 */
+        .login-screen {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        }
+
+        .login-form {
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .login-form h2 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            font-size: 1.5rem;
+        }
+
+        .login-form .subtitle {
+            color: var(--text-color);
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        .security-notice {
+            background: rgba(231, 76, 60, 0.1);
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 0.8rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--text-color);
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            font-size: 1rem;
+            background: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+
+        .login-btn {
+            width: 100%;
+            background: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .login-btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .accounts-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: var(--bg-color);
+            border-radius: 5px;
+            font-size: 0.8rem;
+        }
+
+        .accounts-info h4 {
+            margin-bottom: 10px;
+            color: var(--text-color);
+        }
+
+        .account-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-family: monospace;
+        }
+
+        /* 메인 화면 */
+        .main-content {
+            padding: 40px 0;
+        }
+
+        .chapters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .chapter-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .chapter-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--secondary-color);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+
+        .chapter-card h3 {
+            color: var(--primary-color);
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+
+        .chapter-card .article-count {
+            color: var(--secondary-color);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        /* 조문 상세 화면 */
+        .article-detail {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: var(--shadow);
+        }
+
+        .back-button {
+            background: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            background: #2980b9;
+            transform: translateX(-3px);
+        }
+
+        .chapter-title {
+            color: var(--primary-color);
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--secondary-color);
+        }
+
+        .article-item {
+            background: var(--bg-color);
+            margin-bottom: 15px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .article-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 15px 20px;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .article-content {
+            padding: 20px;
+            line-height: 1.8;
+            white-space: pre-line;
+        }
+
+        /* 오류 메시지 */
+        .error-message {
+            background: var(--accent-color);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        /* 로딩 스피너 */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+        }
+
+        .spinner {
+            border: 4px solid var(--border-color);
+            border-top: 4px solid var(--secondary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 숨겨진 요소 */
+        .hidden {
+            display: none !important;
+        }
+
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 15px;
+            }
+
+            .chapters-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .chapter-card {
+                padding: 20px;
+            }
+
+            .login-form {
+                padding: 30px 20px;
+                margin: 20px;
+            }
+
+            .article-detail {
+                padding: 20px;
+                margin: 10px 0;
+            }
+
+            .article-header {
+                padding: 12px 15px;
+                font-size: 1rem;
+            }
+
+            .article-content {
+                padding: 15px;
+            }
+        }
+    </style>
 </head>
 <body>
     <!-- 로그인 화면 -->
-    <div id="loginScreen" class="screen">
-        <div class="login-container">
-            <div class="law-logo">
-                <h1>⚖️ 군인복무기본법</h1>
-                <p class="law-subtitle">군인의 지위 및 복무에 관한 기본법</p>
+    <div id="loginScreen" class="login-screen">
+        <div class="login-form">
+            <h2>⚖️ 군인복무기본법</h2>
+            <p class="subtitle">[시행 2025. 6. 4.] [법률 제20539호]</p>
+
+            <div class="security-notice">
+                🔐 보안: 암호화된 인증 시스템 적용
             </div>
-            <div class="card login-card">
-                <div class="card__body">
-                    <h2 class="login-title">로그인</h2>
-                    <form id="loginForm" class="login-form">
-                        <div class="form-group">
-                            <label class="form-label" for="username">아이디</label>
-                            <input type="text" id="username" class="form-control" placeholder="아이디를 입력하세요" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label" for="password">비밀번호</label>
-                            <input type="password" id="password" class="form-control" placeholder="비밀번호를 입력하세요" required>
-                        </div>
-                        <div id="loginError" class="error-message hidden"></div>
-                        <button type="submit" class="btn btn--primary btn--full-width">로그인</button>
-                    </form>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="userId">아이디:</label>
+                    <input type="text" id="userId" name="userId" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">비밀번호:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+
+                <button type="submit" class="login-btn">
+                    🔓 로그인
+                </button>
+
+                <div id="loginError" class="error-message hidden"></div>
+            </form>
+
+            <div class="accounts-info">
+                <h4>승인된 사용자 계정:</h4>
+                <div class="account-item">
+                    <span>admin</span>
+                    <span>admin1</span>
+                </div>
+                <div class="account-item">
+                    <span>10-10165</span>
+                    <span>1</span>
+                </div>
+                <div class="account-item">
+                    <span>10-10166</span>
+                    <span>2</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 메인 화면 -->
-    <div id="mainScreen" class="screen hidden">
-        <!-- 상단 네비게이션 -->
+    <!-- 메인 앱 화면 -->
+    <div id="mainApp" class="hidden">
+        <!-- 헤더 -->
         <header class="header">
             <div class="container">
-                <div class="header__content">
-                    <h1 class="header__title">⚖️ 군인복무기본법</h1>
-                    <div class="header__actions">
-                        <button id="searchBtn" class="btn btn--secondary btn--sm">🔍</button>
-                        <button id="themeToggle" class="btn btn--secondary btn--sm">🌙</button>
-                        <button id="downloadBtn" class="btn btn--secondary btn--sm">💾</button>
-                        <button id="profileBtn" class="btn btn--secondary btn--sm">👤</button>
+                <div class="header-content">
+                    <div class="logo-section">
+                        <h1>⚖️ 군인의 지위 및 복무에 관한 기본법</h1>
+                        <p class="subtitle">[시행 2025. 6. 4.] [법률 제20539호]</p>
+                    </div>
+
+                    <div class="quick-tabs">
+                        <button class="quick-tab" id="searchTab" title="검색">
+                            <i class="fas fa-search"></i>
+                            <span class="tab-text">검색</span>
+                        </button>
+                        <button class="quick-tab" id="bookmarkTab" title="즐겨찾기">
+                            <i class="fas fa-star"></i>
+                            <span class="tab-text">즐겨찾기</span>
+                        </button>
+                        <button class="quick-tab" id="historyTab" title="히스토리">
+                            <i class="fas fa-history"></i>
+                            <span class="tab-text">히스토리</span>
+                        </button>
+                        <button class="quick-tab" id="themeToggle" title="다크모드">
+                            <i class="fas fa-moon"></i>
+                            <span class="tab-text">다크모드</span>
+                        </button>
+                        <button class="quick-tab" id="logoutBtn" title="로그아웃">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span class="tab-text">로그아웃</span>
+                        </button>
                     </div>
                 </div>
             </div>
         </header>
-
-        <!-- 검색 바 -->
-        <div id="searchBar" class="search-bar hidden">
-            <div class="container">
-                <div class="search-input-container">
-                    <input type="text" id="searchInput" class="form-control" placeholder="조문 제목이나 내용을 검색하세요...">
-                    <button id="searchClose" class="btn btn--secondary btn--sm">✕</button>
-                </div>
-            </div>
-        </div>
 
         <!-- 메인 콘텐츠 -->
         <main class="main-content">
             <div class="container">
-                <!-- 법률 정보 -->
-                <section class="law-info">
-                    <div class="law-info-card">
-                        <h2>군인의 지위 및 복무에 관한 기본법</h2>
-                        <p class="law-status">[시행 2025. 6. 4.] [법률 제20539호]</p>
-                        <p class="law-description">국가방위와 국민의 보호를 사명으로 하는 군인의 기본권을 보장하고, 군인의 의무 및 병영생활에 대한 기본사항을 정함으로써 선진 정예 강군 육성에 이바지하는 것을 목적으로 합니다.</p>
+                <!-- 장별 카드 화면 -->
+                <div id="chaptersView">
+                    <div class="chapters-grid" id="chaptersGrid">
+                        <!-- JavaScript로 동적 생성 -->
                     </div>
-                </section>
+                </div>
 
-                <!-- 빠른 접근 -->
-                <section class="quick-access">
-                    <h3>빠른 접근</h3>
-                    <div class="quick-grid">
-                        <button class="quick-item" onclick="showMyPage('bookmarks')">
-                            <span class="quick-icon">⭐</span>
-                            <span class="quick-text">북마크</span>
-                        </button>
-                        <button class="quick-item" onclick="showMyPage('history')">
-                            <span class="quick-icon">🕒</span>
-                            <span class="quick-text">최근 열람</span>
-                        </button>
-                        <button class="quick-item" onclick="showAllArticles()">
-                            <span class="quick-icon">📑</span>
-                            <span class="quick-text">전체 조문</span>
-                        </button>
-                        <button class="quick-item" onclick="downloadCode()">
-                            <span class="quick-icon">💾</span>
-                            <span class="quick-text">코드 다운로드</span>
-                        </button>
+                <!-- 조문 상세 화면 -->
+                <div id="articleView" class="hidden">
+                    <button class="back-button" id="backButton">
+                        <i class="fas fa-arrow-left"></i>
+                        뒤로가기
+                    </button>
+                    <div id="articleContent">
+                        <!-- JavaScript로 동적 생성 -->
                     </div>
-                </section>
-
-                <!-- 장별 구성 -->
-                <section class="chapters">
-                    <h3>장별 구성</h3>
-                    <div id="chaptersList" class="chapters-list"></div>
-                </section>
-
-                <!-- 조문 목록 -->
-                <section id="articlesSection" class="articles hidden">
-                    <div class="articles-header">
-                        <button id="articlesBackBtn" class="btn btn--secondary btn--sm">← 뒤로</button>
-                        <h3 id="chapterTitle">조문 목록</h3>
-                    </div>
-                    <div id="articlesList" class="articles-list"></div>
-                </section>
-
-                <!-- 검색 결과 -->
-                <section id="searchResults" class="search-results hidden">
-                    <h3>검색 결과</h3>
-                    <div id="searchResultsList" class="articles-list"></div>
-                </section>
+                </div>
             </div>
         </main>
-    </div>
-
-    <!-- 조문 상세 화면 -->
-    <div id="detailScreen" class="screen hidden">
-        <header class="detail-header">
-            <div class="container">
-                <div class="detail-header__content">
-                    <button id="backBtn" class="btn btn--secondary btn--sm">← 뒤로</button>
-                    <h2 id="detailTitle" class="detail-title"></h2>
-                    <button id="bookmarkBtn" class="btn btn--secondary btn--sm">⭐</button>
-                </div>
-            </div>
-        </header>
-        <div class="detail-content">
-            <div class="container">
-                <div id="articleViewer" class="article-viewer">
-                    <div class="article-content">
-                        <h3 id="articleTitle" class="article-title"></h3>
-                        <div id="articleContent" class="article-text"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 마이페이지 화면 -->
-    <div id="myPageScreen" class="screen hidden">
-        <header class="detail-header">
-            <div class="container">
-                <div class="detail-header__content">
-                    <button id="myPageBackBtn" class="btn btn--secondary btn--sm">← 뒤로</button>
-                    <h2 id="myPageTitle">마이페이지</h2>
-                    <button id="logoutBtn" class="btn btn--secondary btn--sm">로그아웃</button>
-                </div>
-            </div>
-        </header>
-        <div class="detail-content">
-            <div class="container">
-                <!-- 탭 메뉴 -->
-                <div class="tab-menu">
-                    <button class="tab-btn active" data-tab="bookmarks">북마크</button>
-                    <button class="tab-btn" data-tab="history">히스토리</button>
-                    <button class="tab-btn" data-tab="settings">설정</button>
-                </div>
-
-                <!-- 북마크 탭 -->
-                <div id="bookmarksTab" class="tab-content active">
-                    <div id="bookmarksList" class="articles-list"></div>
-                </div>
-
-                <!-- 히스토리 탭 -->
-                <div id="historyTab" class="tab-content">
-                    <div id="historyList" class="articles-list"></div>
-                </div>
-
-                <!-- 설정 탭 -->
-                <div id="settingsTab" class="tab-content">
-                    <div class="settings-list">
-                        <div class="setting-item">
-                            <span class="setting-label">다크 모드</span>
-                            <button id="themeToggleSettings" class="btn btn--secondary btn--sm">🌙</button>
-                        </div>
-                        <div class="setting-item">
-                            <span class="setting-label">현재 사용자</span>
-                            <span id="currentUser" class="setting-value"></span>
-                        </div>
-                        <div class="setting-item">
-                            <span class="setting-label">코드 다운로드</span>
-                            <button id="downloadBtnSettings" class="btn btn--secondary btn--sm">💾</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script src="app.js"></script>
