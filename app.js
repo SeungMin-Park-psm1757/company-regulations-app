@@ -1,5 +1,5 @@
-// 군인복무기본법 웹앱 - JavaScript (v2.0)
-// 즐겨찾기 기능 및 로그인 추적 시스템 포함
+// 군인복무기본법 웹앱 - JavaScript (v3.0)
+// 즐겨찾기 기능 + 로그인 추적 시스템 + 검색 기능 포함
 
 class MilitaryLawApp {
     constructor() {
@@ -9,6 +9,8 @@ class MilitaryLawApp {
         this.lawData = null;
         this.userBookmarks = {};
         this.accessLogs = [];
+        this.searchResults = [];
+        this.currentSearchTerm = '';
         this.init();
     }
 
@@ -363,7 +365,135 @@ class MilitaryLawApp {
         this.showMessage('즐겨찾기에서 제거되었습니다.', 'success');
     }
 
-    // 법령 데이터 로드
+    // 검색 기능
+    performSearch(searchTerm) {
+        if (!searchTerm || !searchTerm.trim()) {
+            this.showSearchResults([], '');
+            return;
+        }
+
+        const term = searchTerm.trim().toLowerCase();
+        this.currentSearchTerm = term;
+        const results = [];
+
+        // 모든 장과 조문에서 검색
+        Object.keys(this.lawData.chapters).forEach(chapterKey => {
+            const chapter = this.lawData.chapters[chapterKey];
+
+            chapter.articles.forEach((article, articleIndex) => {
+                const titleLower = article.title.toLowerCase();
+                const contentLower = article.content.toLowerCase();
+                const numberLower = article.number.toLowerCase();
+
+                // 제목, 내용, 조문 번호에서 검색어 확인
+                if (titleLower.includes(term) || contentLower.includes(term) || numberLower.includes(term)) {
+                    results.push({
+                        chapterKey: chapterKey,
+                        chapterTitle: chapter.title,
+                        articleIndex: articleIndex,
+                        articleNumber: article.number,
+                        articleTitle: article.title,
+                        articleContent: article.content
+                    });
+                }
+            });
+        });
+
+        this.searchResults = results;
+        this.showSearchResults(results, term);
+    }
+
+    // 검색어 하이라이팅
+    highlightSearchTerm(text, searchTerm) {
+        if (!searchTerm) return text;
+
+        const regex = new RegExp(`(${searchTerm})`, 'gi');
+        return text.replace(regex, '<span class="highlight">$1</span>');
+    }
+
+    // 검색 결과 표시
+    showSearchResults(results, searchTerm) {
+        const searchResults = document.getElementById('searchResults');
+        const searchStats = document.getElementById('searchStats');
+
+        if (results.length === 0) {
+            if (searchTerm) {
+                searchResults.innerHTML = `
+                    <div class="no-results">
+                        <i class="fas fa-search"></i>
+                        <p>"${searchTerm}"에 대한 검색 결과가 없습니다.</p>
+                        <small>다른 키워드로 검색해보세요.</small>
+                    </div>
+                `;
+                searchStats.textContent = '검색 결과: 0개';
+                searchStats.classList.remove('hidden');
+            } else {
+                searchResults.innerHTML = '';
+                searchStats.classList.add('hidden');
+            }
+            return;
+        }
+
+        // 검색 통계 표시
+        searchStats.textContent = `"${searchTerm}" 검색 결과: ${results.length}개 조문`;
+        searchStats.classList.remove('hidden');
+
+        // 검색 결과 렌더링
+        searchResults.innerHTML = results.map((result, index) => `
+            <div class="search-result-item" onclick="app.goToArticleFromSearch('${result.chapterKey}', ${result.articleIndex})">
+                <div class="search-result-header">
+                    <div>
+                        <div class="search-result-title">
+                            ${this.highlightSearchTerm(result.articleNumber + '(' + result.articleTitle + ')', searchTerm)}
+                        </div>
+                        <div class="search-result-chapter">${result.chapterTitle}</div>
+                    </div>
+                    <button class="bookmark-btn ${this.isBookmarked(result.chapterKey, result.articleIndex) ? 'bookmarked' : ''}" 
+                            onclick="event.stopPropagation(); app.toggleBookmarkFromSearch('${result.chapterKey}', ${result.articleIndex}, ${index})">
+                        <i class="fas fa-star"></i>
+                        <span>${this.isBookmarked(result.chapterKey, result.articleIndex) ? '저장됨' : '저장'}</span>
+                    </button>
+                </div>
+                <div class="search-result-content">
+                    ${this.highlightSearchTerm(this.truncateText(result.articleContent, 200), searchTerm)}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // 텍스트 자르기 (검색 결과용)
+    truncateText(text, maxLength) {
+        if (text.length <= maxLength) return text;
+        return text.substring(0, maxLength) + '...';
+    }
+
+    // 검색 결과에서 조문으로 이동
+    goToArticleFromSearch(chapterKey, articleIndex) {
+        this.showChapterDetail(chapterKey);
+
+        // 해당 조문으로 스크롤 (약간의 딜레이 후)
+        setTimeout(() => {
+            const articleElements = document.querySelectorAll('.article-item');
+            if (articleElements[articleIndex]) {
+                articleElements[articleIndex].scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        }, 100);
+    }
+
+    // 검색 결과에서 즐겨찾기 토글
+    toggleBookmarkFromSearch(chapterKey, articleIndex, searchResultIndex) {
+        this.toggleBookmark(chapterKey, articleIndex);
+
+        // 검색 결과 화면 새로고침
+        setTimeout(() => {
+            this.showSearchResults(this.searchResults, this.currentSearchTerm);
+        }, 100);
+    }
+
+    // 법령 데이터 로드 (62개 조문 전체)
     async loadLawData() {
         // 실제 법령 데이터 (군인복무기본법 8개 장 62개 조문)
         this.lawData = {
@@ -386,9 +516,9 @@ class MilitaryLawApp {
                     "title": "제2장 군인복무기본정책 등",
                     "article_count": 3,
                     "articles": [
-                        {"number": "제7조", "title": "군인복무기본정책", "content": "① 국방부장관은 군인복무기본정책(이하 \"기본정책\"이라 한다)을 5년마다 수립하여야 한다.\n② 기본정책에는 다음 각 호의 사항이 포함되어야 한다.\n1. 기본목표\n2. 연도별ㆍ과제별 추진계획\n3. 재원(財源) 확보에 관한 사항\n4. 그 밖에 군인의 복무에 관하여 중요한 사항"},
-                        {"number": "제8조", "title": "군인복무정책심의위원회의 설치", "content": "다음 각 호의 사항을 심의하기 위하여 국방부장관 소속으로 군인복무정책심의위원회(이하 \"위원회\"라 한다)를 둔다.\n1. 군인의 기본권 보장에 관한 사항\n2. 군인의 의무에 관한 사항\n3. 기본정책의 수립에 관한 사항"},
-                        {"number": "제9조", "title": "위원회의 구성 등", "content": "① 위원회는 위원장 1명을 포함한 12명 이내의 위원으로 구성한다.\n② 위원장은 국방부장관으로 하고, 위원은 다음 각 호의 사람으로 한다.\n1. 합참의장, 각 군 참모총장 및 해병대 사령관\n2. 국회 소관 상임위원회에서 추천하는 사람 중에서 국방부장관이 위촉하는 사람 3명"}
+                        {"number": "제7조", "title": "군인복무기본정책", "content": "① 국방부장관은 군인복무기본정책(이하 \"기본정책\"이라 한다)을 5년마다 수립하여야 한다.\n② 기본정책에는 다음 각 호의 사항이 포함되어야 한다.\n1. 기본목표\n2. 연도별ㆍ과제별 추진계획\n3. 재원(財源) 확보에 관한 사항\n4. 그 밖에 군인의 복무에 관하여 중요한 사항\n③ 기본정책은 제8조에 따른 군인복무정책심의위원회의 심의를 거쳐 확정한다."},
+                        {"number": "제8조", "title": "군인복무정책심의위원회의 설치", "content": "다음 각 호의 사항을 심의하기 위하여 국방부장관 소속으로 군인복무정책심의위원회(이하 \"위원회\"라 한다)를 둔다.\n1. 군인의 기본권 보장에 관한 사항\n2. 군인의 의무에 관한 사항\n3. 기본정책의 수립에 관한 사항\n4. 군인복무와 관련한 법령과 제도의 개선에 관한 사항"},
+                        {"number": "제9조", "title": "위원회의 구성 등", "content": "① 위원회는 위원장 1명을 포함한 12명 이내의 위원으로 구성한다.\n② 위원장은 국방부장관으로 하고, 위원은 다음 각 호의 사람으로 한다.\n1. 합참의장, 각 군 참모총장 및 해병대 사령관\n2. 국회 소관 상임위원회에서 추천하는 사람 중에서 국방부장관이 위촉하는 사람 3명\n3. 군인의 기본권 보장 등에 관하여 전문적 학식과 경험이 풍부한 사람 중에서 국방부장관이 위촉하는 사람 3명"}
                     ]
                 },
                 "chapter3": {
@@ -397,17 +527,17 @@ class MilitaryLawApp {
                     "articles": [
                         {"number": "제10조", "title": "군인의 기본권과 제한", "content": "① 군인은 대한민국 국민으로서 일반 국민과 동일하게 헌법상 보장된 권리를 가진다.\n② 제1항에 따른 권리는 법률에서 정한 군인의 의무에 따라 군사적 직무의 필요성 범위에서 제한될 수 있다."},
                         {"number": "제11조", "title": "평등대우의 원칙", "content": "군인은 이 법의 적용에 있어 평등하게 대우받아야 하며 차별을 받지 아니한다."},
-                        {"number": "제12조", "title": "영내대기의 금지", "content": "① 지휘관은 영내 거주 의무가 없는 군인을 근무시간 외에 영내에 대기하도록 하여서는 아니된다. 다만, 다음 각 호의 어느 하나에 해당하는 경우에는 그러하지 아니하다.\n1. 전시ㆍ사변 또는 이에 준하는 국가비상사태가 발생한 경우\n2. 침투 및 국지도발(局地挑發) 상황 등 작전상황이 발생한 경우"},
+                        {"number": "제12조", "title": "영내대기의 금지", "content": "① 지휘관은 영내 거주 의무가 없는 군인을 근무시간 외에 영내에 대기하도록 하여서는 아니된다. 다만, 다음 각 호의 어느 하나에 해당하는 경우에는 그러하지 아니하다.\n1. 전시ㆍ사변 또는 이에 준하는 국가비상사태가 발생한 경우\n2. 침투 및 국지도발(局地挑發) 상황 등 작전상황이 발생한 경우\n3. 경계태세의 강화가 필요한 경우"},
                         {"number": "제13조", "title": "사생활의 비밀과 자유", "content": "국가는 병영생활에서 군인의 사생활의 비밀과 자유가 최대한 보장되도록 하여야 한다."},
                         {"number": "제14조", "title": "통신의 비밀보장", "content": "① 군인은 서신 및 통신의 비밀을 침해받지 아니한다.\n② 군인은 작전 등 주요임무수행과 관련된 부대편성ㆍ이동ㆍ배치와 주요직위자에 관한 사항 등 군사보안에 저촉되는 사항을 통신수단 및 우편물 등을 이용하여 누설하여서는 아니 된다."},
-                        {"number": "제15조", "title": "종교생활의 보장", "content": "① 지휘관은 부대의 임무 수행에 지장이 없는 범위에서 군인의 종교생활을 보장하여야 한다.\n② 영내 거주 의무가 있는 군인은 지휘관이 지정하는 종교시설 및 그 밖의 장소에서 행하는 종교의식에 참여할 수 있다."},
-                        {"number": "제16조", "title": "대외발표 및 활동", "content": "군인이 국방 및 군사에 관한 사항을 군 외부에 발표하거나, 군을 대표하여 또는 군인의 신분으로 대외활동을 하고자 할 때에는 국방부장관의 허가를 받아야 한다."},
+                        {"number": "제15조", "title": "종교생활의 보장", "content": "① 지휘관은 부대의 임무 수행에 지장이 없는 범위에서 군인의 종교생활을 보장하여야 한다.\n② 영내 거주 의무가 있는 군인은 지휘관이 지정하는 종교시설 및 그 밖의 장소에서 행하는 종교의식에 참여할 수 있다.\n③ 모든 군인은 자기의 의사에 반하여 종교의식에 참여하도록 강요받거나 참여를 제한받지 아니한다."},
+                        {"number": "제16조", "title": "대외발표 및 활동", "content": "군인이 국방 및 군사에 관한 사항을 군 외부에 발표하거나, 군을 대표하여 또는 군인의 신분으로 대외활동을 하고자 할 때에는 국방부장관의 허가를 받아야 한다. 다만, 순수한 학술ㆍ문화ㆍ체육 등의 분야에서 개인적으로 대외활동을 하는 경우로서 직무수행에 지장이 없는 경우에는 그러하지 아니하다."},
                         {"number": "제17조", "title": "의료권의 보장", "content": "군인은 건강을 유지하고 복무 중에 발생한 질병이나 부상을 치료하기 위하여 적절하고 효과적인 의료처우를 받을 권리가 있다."},
-                        {"number": "제17조의2", "title": "미세먼지에 따른 외부활동 제한 등", "content": "① 지휘관은 그 부대가 활동하는 지역의 미세먼지 농도가 대기오염경보 발령 기준 이상일 경우 작전임무수행을 제외한 외부활동을 제한하고 개인보호장구를 지급하는 등 필요한 조치를 취하도록 노력하여야 한다."},
-                        {"number": "제17조의3", "title": "폭염ㆍ한파 등에 따른 조치 등", "content": "① 지휘관은 폭염ㆍ한파 등으로 인하여 특보가 발표되는 경우에는 부대활동에 제한이 없는 범위에서 적절하게 휴식하도록 하는 등 군인의 건강 및 보건과 관련된 조치를 취하여야 한다."},
-                        {"number": "제18조", "title": "휴가 등의 보장", "content": "① 군인은 대통령령으로 정하는 바에 따라 휴가ㆍ외출ㆍ외박을 보장받는다.\n② 지휘관은 다음 각 호의 어느 하나에 해당하는 경우에는 군인의 휴가ㆍ외출ㆍ외박을 제한하거나 보류할 수 있다."},
+                        {"number": "제17조의2", "title": "미세먼지에 따른 외부활동 제한 등", "content": "① 지휘관은 그 부대가 활동하는 지역의 미세먼지 농도가 대기오염경보 발령 기준 이상일 경우 작전임무수행을 제외한 외부활동을 제한하고 개인보호장구를 지급하는 등 필요한 조치를 취하도록 노력하여야 한다.\n② 국방부장관은 병영생활에 필요한 시설의 실내공기질 실태를 파악하고 이를 관리하기 위하여 대통령령으로 정하는 바에 따라 필요한 조치를 취하도록 노력하여야 한다."},
+                        {"number": "제17조의3", "title": "폭염ㆍ한파 등에 따른 조치 등", "content": "① 지휘관은 폭염ㆍ한파 등으로 인하여 특보가 발표되는 경우에는 부대활동에 제한이 없는 범위에서 적절하게 휴식하도록 하는 등 군인의 건강 및 보건과 관련된 조치를 취하여야 한다.\n② 국방부장관은 폭염ㆍ한파 등에 대비하여 군인의 건강 유지에 필요한 대책을 수립하고 시행하여야 한다."},
+                        {"number": "제18조", "title": "휴가 등의 보장", "content": "① 군인은 대통령령으로 정하는 바에 따라 휴가ㆍ외출ㆍ외박을 보장받는다.\n② 지휘관은 다음 각 호의 어느 하나에 해당하는 경우에는 군인의 휴가ㆍ외출ㆍ외박을 제한하거나 보류할 수 있다.\n1. 전시ㆍ사변 또는 이에 준하는 국가비상사태가 발생한 경우\n2. 침투 및 국지도발 상황 등 작전상황이 발생한 경우"},
                         {"number": "제18조의2", "title": "생활여건의 보장", "content": "국가는 군인의 생활여건을 보장하기 위하여 병영생활과 밀접한 급식, 피복, 주거 등에 필요한 물품에 대해서는 군인의 복지를 우선 고려하여 조달 및 보급하여야 한다."},
-                        {"number": "제18조의3", "title": "양성평등을 위한 복무여건 조성 등", "content": "① 국가는 군의 양성평등을 구현하기 위하여 각 군인의 성별을 고려하여 피복, 주거 및 위생시설 등 일상적인 복무에 필요한 여건을 조성하여야 한다."}
+                        {"number": "제18조의3", "title": "양성평등을 위한 복무여건 조성 등", "content": "① 국가는 군의 양성평등을 구현하기 위하여 각 군인의 성별을 고려하여 피복, 주거 및 위생시설 등 일상적인 복무에 필요한 여건을 조성하여야 한다.\n② 국가는 각 군인의 성별을 고려하여 개인전투체계를 우선적으로 개발하거나 조달하되, 향후 맞춤형 개인전투체계 발전을 위하여 노력하여야 한다."}
                     ]
                 },
                 "chapter4": {
@@ -419,53 +549,54 @@ class MilitaryLawApp {
                         {"number": "제21조", "title": "성실의 의무", "content": "군인은 직무 수행에 따르는 위험과 책임을 회피하지 아니하고 성실하게 그 직무를 수행하여야 한다."},
                         {"number": "제22조", "title": "정직의 의무", "content": "군인은 명령의 하달이나 전달, 보고 및 통보를 할 때에 정직하여야 한다."},
                         {"number": "제23조", "title": "청렴의 의무", "content": "① 군인은 직무와 관련하여 직접 또는 간접을 불문하고 사례ㆍ증여 또는 향응을 주거나 받아서는 아니 된다.\n② 군인은 직무상의 관계 여하를 불문하고 그 소속 상관에게 증여하거나 소속 부하로부터 증여를 받아서는 아니 된다."},
-                        {"number": "제24조", "title": "명령 발령자의 의무", "content": "① 군인은 직무와 관계가 없거나 법규 및 상관의 직무상 명령에 반하는 사항 또는 자신의 권한 밖의 사항에 관하여 명령을 발하여서는 아니 된다."},
+                        {"number": "제24조", "title": "명령 발령자의 의무", "content": "① 군인은 직무와 관계가 없거나 법규 및 상관의 직무상 명령에 반하는 사항 또는 자신의 권한 밖의 사항에 관하여 명령을 발하여서는 아니 된다.\n② 명령은 지휘계통에 따라 하달하여야 한다. 다만, 부득이한 경우에는 지휘계통에 따르지 아니하고 하달할 수 있고, 이 경우 명령자와 수명자는 이를 지체 없이 지휘계통의 중간지휘관에게 알려야 한다."},
                         {"number": "제25조", "title": "명령 복종의 의무", "content": "군인은 직무를 수행할 때 상관의 직무상 명령에 복종하여야 한다."},
                         {"number": "제26조", "title": "사적 제재 및 직권남용의 금지", "content": "군인은 어떠한 경우에도 구타, 폭언, 가혹행위 및 집단 따돌림 등 사적 제재를 하거나 직권을 남용하여서는 아니 된다."},
-                        {"number": "제27조", "title": "군기문란 행위 등의 금지", "content": "① 군인은 다음 각 호의 행위를 하여서는 아니 된다.\n1. 성희롱ㆍ성추행 및 성폭력 등의 행위\n2. 상급자ㆍ하급자나 동료를 음해(陰害)하거나 유언비어를 유포하는 행위"},
+                        {"number": "제27조", "title": "군기문란 행위 등의 금지", "content": "① 군인은 다음 각 호의 행위를 하여서는 아니 된다.\n1. 성희롱ㆍ성추행 및 성폭력 등의 행위\n2. 상급자ㆍ하급자나 동료를 음해(陰害)하거나 유언비어를 유포하는 행위\n3. 의견 건의 또는 고충처리 등을 고의로 방해하거나 부당한 영향을 주는 행위\n4. 그 밖에 군기를 문란하게 하는 행위"},
                         {"number": "제28조", "title": "비밀 엄수의 의무", "content": "① 군인은 복무 중일 때뿐만 아니라 전역 후에도 복무 중 알게 된 비밀을 엄격히 지켜야 한다.\n② 군인은 직무상 알게 된 비밀을 공무 외의 목적으로 사용하여서는 아니 된다."},
                         {"number": "제29조", "title": "직무이탈 금지", "content": "군인은 상관의 허가 또는 정당한 사유 없이 직무를 이탈하여서는 아니 된다."},
-                        {"number": "제30조", "title": "영리행위 및 겸직 금지", "content": "① 군인은 군무(軍務) 외에 영리를 목적으로 하는 업무에 종사하지 못하며 국방부장관의 허가를 받지 아니하고는 다른 직무를 겸할 수 없다."},
-                        {"number": "제31조", "title": "집단행위의 금지", "content": "① 군인은 다음 각 호에 해당하는 집단행위를 하여서는 아니 된다.\n1. 노동단체의 결성, 단체교섭 및 단체행동\n2. 군무에 영향을 주기 위한 목적의 결사 및 단체행동"},
+                        {"number": "제30조", "title": "영리행위 및 겸직 금지", "content": "① 군인은 군무(軍務) 외에 영리를 목적으로 하는 업무에 종사하지 못하며 국방부장관의 허가를 받지 아니하고는 다른 직무를 겸할 수 없다.\n② 제1항에 따른 영리를 목적으로 하는 업무의 범위 등에 관한 사항은 대통령령으로 정한다."},
+                        {"number": "제31조", "title": "집단행위의 금지", "content": "① 군인은 다음 각 호에 해당하는 집단행위를 하여서는 아니 된다.\n1. 노동단체의 결성, 단체교섭 및 단체행동\n2. 군무에 영향을 주기 위한 목적의 결사 및 단체행동\n3. 집단으로 상관에게 항의하는 행위\n4. 집단으로 정당한 지시를 거부하거나 위반하는 행위"},
                         {"number": "제32조", "title": "불온표현물 소지ㆍ전파 등의 금지", "content": "군인은 불온 유인물ㆍ도서ㆍ도화, 그 밖의 표현물을 제작ㆍ복사ㆍ소지ㆍ운반ㆍ전파 또는 취득하여서는 아니 되며, 이를 취득한 때에는 즉시 상관 또는 수사기관 등에 신고하여야 한다."},
-                        {"number": "제33조", "title": "정치 운동의 금지", "content": "① 군인은 정당이나 그 밖의 정치단체의 결성에 관여하거나 이에 가입할 수 없다.\n② 군인은 선거에서 특정 정당 또는 특정인을 지지 또는 반대하기 위한 다음 각 호의 행위를 하여서는 아니 된다."},
-                        {"number": "제34조", "title": "전쟁법 준수의 의무", "content": "① 군인은 무력충돌 행위에 관련된 모든 국제법 중에서 대한민국이 당사자로서 가입한 조약과 일반적으로 승인된 국제법규(이하 \"전쟁법\"이라 한다)를 준수하여야 한다."}
+                        {"number": "제33조", "title": "정치 운동의 금지", "content": "① 군인은 정당이나 그 밖의 정치단체의 결성에 관여하거나 이에 가입할 수 없다.\n② 군인은 선거에서 특정 정당 또는 특정인을 지지 또는 반대하기 위한 다음 각 호의 행위를 하여서는 아니 된다.\n1. 투표를 하거나 하지 아니하도록 권유 운동을 하는 것\n2. 서명 운동을 기도ㆍ주재하거나 권유하는 것"},
+                        {"number": "제34조", "title": "전쟁법 준수의 의무", "content": "① 군인은 무력충돌 행위에 관련된 모든 국제법 중에서 대한민국이 당사자로서 가입한 조약과 일반적으로 승인된 국제법규(이하 \"전쟁법\"이라 한다)를 준수하여야 한다.\n② 군인은 전쟁법을 숙지하여야 하며, 국방부장관은 대통령령으로 정하는 바에 따라 군인에게 전쟁법에 대한 교육을 실시하여야 한다."}
                     ]
                 },
                 "chapter5": {
                     "title": "제5장 병영생활",
                     "article_count": 7,
                     "articles": [
-                        {"number": "제35조", "title": "군인 상호간의 관계", "content": "① 군인은 동료의 인격과 명예, 권리를 존중하며, 전우애에 기초하여 동료를 곤경과 위험으로부터 보호하여야 한다.\n② 군인은 동료의 가치관을 존중하고 배려하여야 한다."},
-                        {"number": "제36조", "title": "상관의 책무", "content": "① 상관은 직무수행 시는 물론 직무 외에서도 부하에게 모범을 보여야 한다.\n② 상관은 직무에 관하여 부하를 지휘ㆍ감독하여야 한다."},
+                        {"number": "제35조", "title": "군인 상호간의 관계", "content": "① 군인은 동료의 인격과 명예, 권리를 존중하며, 전우애에 기초하여 동료를 곤경과 위험으로부터 보호하여야 한다.\n② 군인은 동료의 가치관을 존중하고 배려하여야 한다.\n③ 병 상호간에는 직무에 관한 권한이 부여된 경우 이외에는 명령, 지시 등을 하여서는 아니 된다."},
+                        {"number": "제36조", "title": "상관의 책무", "content": "① 상관은 직무수행 시는 물론 직무 외에서도 부하에게 모범을 보여야 한다.\n② 상관은 직무에 관하여 부하를 지휘ㆍ감독하여야 한다.\n③ 상관은 부하의 인격을 존중하고 배려하여야 한다.\n④ 상관은 직무와 관계가 없거나 법규 및 상관의 직무상 명령에 반하는 사항 또는 자신의 권한 밖의 사항 등을 명령하여서는 아니 된다."},
                         {"number": "제37조", "title": "다문화 존중", "content": "① 군인은 다문화적 가치를 존중하여야 한다.\n② 국방부장관은 군인에게 다문화적 가치의 존중과 이해를 위한 교육을 매년 1회 이상 실시하여야 한다."},
-                        {"number": "제38조", "title": "기본권교육 및 성인지교육등", "content": "① 국방부장관은 「대한민국헌법」과 이 법에서 보장하고 있는 군인의 기본권과 의무 및 기본권 침해시 구제절차 등에 관한 교육(이하 \"기본권교육\"이라 한다)을 매년 4회 이상 실시하여야 한다."},
-                        {"number": "제38조의2", "title": "군기훈련", "content": "① 지휘관은 군기의 확립을 위하여 필요한 경우 다음 각 호에 해당하는 사람을 대상으로 군기훈련을 실시할 수 있다. 이 경우 군기훈련은 공개된 장소에서 훈련대상자의 신체상태를 고려하여 체력을 증진시키거나 정신을 수양하는 등의 방법으로 실시하여야 한다."},
-                        {"number": "제38조의3", "title": "마약류 투약 등 검사", "content": "① 국방부장관은 군인의 안전하고 건강한 병영생활을 위하여 「마약류 관리에 관한 법률」에 따른 마약류 투약, 흡연 및 섭취 여부에 관하여 검사할 수 있다."}
+                        {"number": "제38조", "title": "기본권교육 및 성인지교육등", "content": "① 국방부장관은 「대한민국헌법」과 이 법에서 보장하고 있는 군인의 기본권과 의무 및 기본권 침해시 구제절차 등에 관한 교육(이하 \"기본권교육\"이라 한다)을 매년 4회 이상 실시하여야 한다.\n② 국방부장관은 「양성평등기본법」 제18조제1항에 따른 성인지 교육, 같은 법 제31조제1항에 따른 성희롱 예방교육 등을 매년 1회 이상 실시하여야 한다."},
+                        {"number": "제38조의2", "title": "군기훈련", "content": "① 지휘관은 군기의 확립을 위하여 필요한 경우 다음 각 호에 해당하는 사람을 대상으로 군기훈련을 실시할 수 있다. 이 경우 군기훈련은 공개된 장소에서 훈련대상자의 신체상태를 고려하여 체력을 증진시키거나 정신을 수양하는 등의 방법으로 실시하여야 한다.\n1. 현역에 복무하는 군인\n2. 사관생도ㆍ사관후보생ㆍ준사관후보생 및 부사관후보생"},
+                        {"number": "제38조의3", "title": "마약류 투약 등 검사", "content": "① 국방부장관은 군인의 안전하고 건강한 병영생활을 위하여 「마약류 관리에 관한 법률」에 따른 마약류 투약, 흡연 및 섭취 여부에 관하여 검사할 수 있다.\n② 국방부장관은 제1항에 따른 마약류 검사를 하는 경우 지정된 군보건의료기관에서 검사를 받도록 할 수 있다."}
                     ]
                 },
                 "chapter6": {
                     "title": "제6장 군인의 권리구제",
                     "article_count": 10,
                     "articles": [
-                        {"number": "제39조", "title": "의견 건의", "content": "① 군인은 군과 관련된 제도의 개선 등 군에 유익한 의견이나 복무와 관련된 정당한 의견이 있는 경우에는 지휘계통에 따라 단독으로 상관에게 건의할 수 있다."},
-                        {"number": "제40조", "title": "고충 처리", "content": "① 군인은 근무여건ㆍ인사관리 및 신상문제 등에 관하여 군인고충심사위원회에 고충의 심사를 청구할 수 있다."},
-                        {"number": "제41조", "title": "전문상담관", "content": "① 군인이 다음 각 호의 사항으로 군 생활의 고충이나 어려움을 호소하는 경우에 이에 대한 상담 등을 하기 위하여 대통령령으로 정하는 규모 이상의 부대 또는 기관에 병영생활 전문상담관을 둔다."},
-                        {"number": "제42조", "title": "군인권보호관", "content": "① 군인의 기본권 보장 및 기본권 침해에 대한 권리구제를 위하여 군인권보호관을 두도록 한다."},
+                        {"number": "제39조", "title": "의견 건의", "content": "① 군인은 군과 관련된 제도의 개선 등 군에 유익한 의견이나 복무와 관련된 정당한 의견이 있는 경우에는 지휘계통에 따라 단독으로 상관에게 건의할 수 있다.\n② 군인은 제1항에 따른 의견 건의를 이유로 불이익한 처분이나 대우를 받지 아니한다."},
+                        {"number": "제40조", "title": "고충 처리", "content": "① 군인은 근무여건ㆍ인사관리 및 신상문제 등에 관하여 군인고충심사위원회에 고충의 심사를 청구할 수 있다.\n② 군인은 제1항에 따른 고충심사 청구를 이유로 불이익한 처분이나 대우를 받지 아니한다."},
+                        {"number": "제41조", "title": "전문상담관", "content": "① 군인이 다음 각 호의 사항으로 군 생활의 고충이나 어려움을 호소하는 경우에 이에 대한 상담 등을 하기 위하여 대통령령으로 정하는 규모 이상의 부대 또는 기관에 병영생활 전문상담관을 둔다.\n1. 군 생활에 따른 부적응에 관한 사항\n2. 가족관계 및 개인 신상에 관한 사항"},
+                        {"number": "제42조", "title": "군인권보호관", "content": "① 군인의 기본권 보장 및 기본권 침해에 대한 권리구제를 위하여 군인권보호관을 두도록 한다.\n② 제1항에 따른 군인권보호관의 조직과 업무 및 운영 등에 관하여는 따로 법률로 정한다."},
                         {"number": "제43조", "title": "신고의무 등", "content": "① 군인은 병영생활에서 다른 군인이 구타, 폭언, 가혹행위 및 집단 따돌림 등 사적 제재를 하거나, 성추행 및 성폭력 행위를 한 사실을 알게 된 경우에는 즉시 상관에게 보고하거나 군인권보호관 또는 군 수사기관 등에 신고하여야 한다."},
-                        {"number": "제44조", "title": "신고자에 대한 비밀보장", "content": "누구든지 신고등을 한 사람이라는 사정을 알면서 그의 인적사항이나 그가 신고자임을 미루어 알 수 있는 사실을 다른 사람에게 알려주거나 공개 또는 보도하여서는 아니 된다."},
-                        {"number": "제45조", "title": "신고자 보호", "content": "① 누구든지 신고등을 이유로 신고자에게 징계조치 등 어떠한 신분상 불이익이나 근무조건상의 차별대우를 하여서는 아니 된다."},
-                        {"number": "제45조의2", "title": "군복무 중 사망한 군인의 유족에 대한 변호사 선임의 특례", "content": "① 군복무 중 사망한 군인의 유족은 사망사고 처리 과정에서 유족의 연금ㆍ보상 및 국가유공ㆍ국가보훈의 대상 등에 관한 법률적 조력을 보장받기 위하여 변호사를 선임할 수 있다."},
-                        {"number": "제45조의3", "title": "직무수행에 대한 형의 감면", "content": "군사작전의 수행이나 군부대의 지원을 하는 중에 타인의 생명ㆍ신체 또는 재산에 대한 위해 발생의 우려가 명백하고 긴급한 상황에서 군인이 그 위해를 예방하거나 제거하기 위한 행위를 하여 그로 인하여 타인에게 피해가 발생한 경우, 그 군인의 직무수행이 불가피한 것이고 필요한 최소한의 범위에서 이루어졌으며 해당 군인에게 고의 또는 중대한 과실이 없는 때에는 그 정상을 참작하여 형사책임을 감경하거나 면제할 수 있다."}
+                        {"number": "제44조", "title": "신고자에 대한 비밀보장", "content": "누구든지 신고등을 한 사람이라는 사정을 알면서 그의 인적사항이나 그가 신고자임을 미루어 알 수 있는 사실을 다른 사람에게 알려주거나 공개 또는 보도하여서는 아니 된다. 다만, 신고자가 동의한 때에는 그러하지 아니하다."},
+                        {"number": "제45조", "title": "신고자 보호", "content": "① 누구든지 신고등을 이유로 신고자에게 징계조치 등 어떠한 신분상 불이익이나 근무조건상의 차별대우(이하 \"불이익조치\"라 한다)를 하여서는 아니 된다.\n② 국방부장관은 신고자와 신고등의 내용에 대한 비밀을 보장하고 신고자가 신고등을 이유로 불이익조치를 받지 않도록 하여야 한다."},
+                        {"number": "제45조의2", "title": "군복무 중 사망한 군인의 유족에 대한 변호사 선임의 특례", "content": "① 군복무 중 사망한 군인의 유족은 사망사고 처리 과정에서 유족의 연금ㆍ보상 및 국가유공ㆍ국가보훈의 대상 등에 관한 법률적 조력을 보장받기 위하여 변호사를 선임할 수 있다.\n② 제1항에 따른 변호사는 사망한 군인과 관련하여 군검사 또는 군사법경찰관의 검시(檢視) 및 유족에 대한 조사에 참여하여 의견을 진술할 수 있다."},
+                        {"number": "제45조의3", "title": "직무수행에 대한 형의 감면", "content": "군사작전의 수행이나 군부대의 지원을 하는 중에 타인의 생명ㆍ신체 또는 재산에 대한 위해 발생의 우려가 명백하고 긴급한 상황에서 군인이 그 위해를 예방하거나 제거하기 위한 행위를 하여 그로 인하여 타인에게 피해가 발생한 경우, 그 군인의 직무수행이 불가피한 것이고 필요한 최소한의 범위에서 이루어졌으며 해당 군인에게 고의 또는 중대한 과실이 없는 때에는 그 정상을 참작하여 형사책임을 감경하거나 면제할 수 있다."},
+                        {"number": "제50조의2", "title": "손실보상", "content": "① 국가는 군인의 적법한 직무수행으로 인하여 다음 각 호의 어느 하나에 해당하는 손실을 입은 자에 대하여 정당한 보상을 하여야 한다.\n1. 손실발생의 원인에 대하여 책임이 없는 자가 생명ㆍ신체 또는 재산상의 손실을 입은 경우\n2. 손실발생의 원인에 대하여 책임이 있는 자가 자신의 책임에 상응하는 정도를 초과하는 생명ㆍ신체 또는 재산상의 손실을 입은 경우"}
                     ]
                 },
                 "chapter7": {
                     "title": "제7장 특별근무 등",
                     "article_count": 3,
                     "articles": [
-                        {"number": "제46조", "title": "특별근무", "content": "① 부대의 인원과 재산을 보호하고 규율과 보안을 유지하며 각종 사고를 예방하고 비상사태에 대비하기 위하여 부대별로 당직근무ㆍ영내위병근무 등 특별근무를 실시한다."},
-                        {"number": "제47조", "title": "비상소집 등", "content": "① 군인은 대통령령으로 정하는 비상소집이 발령된 때에는 지체 없이 소속 부대에 집결하여야 한다."},
-                        {"number": "제48조", "title": "초병의 무기사용 등", "content": "① 초병은 다음 각 호의 어느 하나에 해당하는 경우에 한정하여 필요한 최소한의 범위에서 휴대하고 있는 무기를 사용할 수 있다."}
+                        {"number": "제46조", "title": "특별근무", "content": "① 부대의 인원과 재산을 보호하고 규율과 보안을 유지하며 각종 사고를 예방하고 비상사태에 대비하기 위하여 부대별로 당직근무ㆍ영내위병근무 등 특별근무를 실시한다.\n② 특별근무는 계급과 직책에 따라 공정하게 배정하여야 한다."},
+                        {"number": "제47조", "title": "비상소집 등", "content": "① 군인은 대통령령으로 정하는 비상소집이 발령된 때에는 지체 없이 소속 부대에 집결하여야 한다.\n② 장성급 지휘관은 전시ㆍ사변 또는 이에 준하는 국가비상사태에 신속히 대응하기 위하여 필요한 경우에는 대통령령으로 정하는 바에 따라 소속 부대원의 휴가ㆍ외박ㆍ외출 등에 있어 이동지역을 제한할 수 있다."},
+                        {"number": "제48조", "title": "초병의 무기사용 등", "content": "① 초병은 다음 각 호의 어느 하나에 해당하는 경우에 한정하여 필요한 최소한의 범위에서 휴대하고 있는 무기를 사용할 수 있다.\n1. 책임구역 내 인원의 생명ㆍ신체 또는 재산을 보호함에 있어서 그 상황이 급박하여 무기를 사용하지 아니하면 보호할 방법이 없을 때\n2. 국방부장관이 정하는 방법에 따라 수하(誰何)하여도 이에 불응하여 대답이 없거나, 도주하거나 또는 초병에게 접근할 때"}
                     ]
                 },
                 "chapter8": {
@@ -475,7 +606,7 @@ class MilitaryLawApp {
                         {"number": "제49조", "title": "권한의 위임", "content": "이 법에 따른 국방부장관의 권한은 대통령령으로 정하는 바에 따라 그 일부를 각 군 참모총장에게 위임할 수 있다."},
                         {"number": "제50조", "title": "복무규정", "content": "군인의 복무에 관하여 이 법에 규정한 것을 제외하고는 따로 대통령령으로 정한다."},
                         {"number": "제51조", "title": "벌칙 적용에서 공무원 의제", "content": "위원회 위원 중 공무원이 아닌 사람은 「형법」 제129조부터 제132조까지를 적용할 때에는 공무원으로 본다."},
-                        {"number": "제52조", "title": "벌칙", "content": "① 제44조를 위반하여 신고자의 인적사항이나 신고자임을 미루어 알 수 있는 사실을 다른 사람에게 알려주거나 공개 또는 보도한 자는 3년 이하의 징역 또는 3천만원 이하의 벌금에 처한다."}
+                        {"number": "제52조", "title": "벌칙", "content": "① 제44조를 위반하여 신고자의 인적사항이나 신고자임을 미루어 알 수 있는 사실을 다른 사람에게 알려주거나 공개 또는 보도한 자는 3년 이하의 징역 또는 3천만원 이하의 벌금에 처한다.\n② 제39조제2항 또는 제40조제2항을 위반하여 의견 건의 또는 고충심사 청구를 이유로 불이익한 처분이나 대우를 한 자는 1년 이하의 징역 또는 1천만원 이하의 벌금에 처한다."}
                     ]
                 }
             }
@@ -490,15 +621,23 @@ class MilitaryLawApp {
             this.handleLogin();
         });
 
-        // 빠간접근 탭들 (히스토리 제거됨)
-        document.getElementById('searchTab').addEventListener('click', () => this.showNotImplemented('검색'));
+        // 빠간접근 탭들
+        document.getElementById('searchTab').addEventListener('click', () => this.showSearchView());
         document.getElementById('bookmarkTab').addEventListener('click', () => this.showBookmarksView());
         document.getElementById('themeToggle').addEventListener('click', () => this.toggleTheme());
         document.getElementById('logoutBtn').addEventListener('click', () => this.logout());
 
+        // 검색 폼
+        document.getElementById('searchForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const searchTerm = document.getElementById('searchInput').value;
+            this.performSearch(searchTerm);
+        });
+
         // 뒤로가기 버튼들
         document.getElementById('backButton').addEventListener('click', () => this.showChaptersView());
         document.getElementById('backFromBookmarks').addEventListener('click', () => this.showChaptersView());
+        document.getElementById('backFromSearch').addEventListener('click', () => this.showChaptersView());
     }
 
     // 테마 초기화
@@ -687,6 +826,23 @@ class MilitaryLawApp {
         });
     }
 
+    // 검색 화면 표시
+    showSearchView() {
+        document.getElementById('chaptersView').classList.add('hidden');
+        document.getElementById('articleView').classList.add('hidden');
+        document.getElementById('bookmarksView').classList.add('hidden');
+        document.getElementById('searchView').classList.remove('hidden');
+
+        // 검색 탭 활성화 표시
+        document.getElementById('searchTab').classList.add('active');
+        document.getElementById('bookmarkTab').classList.remove('active');
+
+        // 검색창에 포커스
+        setTimeout(() => {
+            document.getElementById('searchInput').focus();
+        }, 100);
+    }
+
     // 즐겨찾기 화면 표시
     showBookmarksView() {
         const grid = document.getElementById('bookmarksGrid');
@@ -723,10 +879,12 @@ class MilitaryLawApp {
 
         document.getElementById('chaptersView').classList.add('hidden');
         document.getElementById('articleView').classList.add('hidden');
+        document.getElementById('searchView').classList.add('hidden');
         document.getElementById('bookmarksView').classList.remove('hidden');
 
         // 즐겨찾기 탭 활성화 표시
         document.getElementById('bookmarkTab').classList.add('active');
+        document.getElementById('searchTab').classList.remove('active');
     }
 
     // 즐겨찾기에서 조문으로 이동
@@ -746,9 +904,11 @@ class MilitaryLawApp {
         document.getElementById('chaptersView').classList.remove('hidden');
         document.getElementById('articleView').classList.add('hidden');
         document.getElementById('bookmarksView').classList.add('hidden');
+        document.getElementById('searchView').classList.add('hidden');
 
         // 활성 탭 해제
         document.getElementById('bookmarkTab').classList.remove('active');
+        document.getElementById('searchTab').classList.remove('active');
     }
 
     // 조문 상세 화면 표시
@@ -756,14 +916,11 @@ class MilitaryLawApp {
         document.getElementById('chaptersView').classList.add('hidden');
         document.getElementById('articleView').classList.remove('hidden');
         document.getElementById('bookmarksView').classList.add('hidden');
+        document.getElementById('searchView').classList.add('hidden');
 
         // 활성 탭 해제
         document.getElementById('bookmarkTab').classList.remove('active');
-    }
-
-    // 미구현 기능 알림
-    showNotImplemented(feature) {
-        alert(`${feature} 기능은 향후 업데이트에서 제공될 예정입니다.`);
+        document.getElementById('searchTab').classList.remove('active');
     }
 
     // 메시지 표시
